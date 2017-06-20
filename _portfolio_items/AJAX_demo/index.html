@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AJAX Sandbox</title>
+    <style>
+        * {
+            padding: 0px;
+            margin: 0px;
+        }
+        
+        body {
+            font-family: Tahoma;
+            font-size: 16px;
+        }
+        
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .label-txt {
+            display: block;
+            padding-bottom: 5px;
+            padding-top: 5px;
+        }
+        
+        .submit-button {
+            display: block;
+            margin-top: 10px;
+            padding: 15px 20px;
+            background: #909090;
+            border: none;
+            color: whitesmoke;
+            cursor: pointer;
+        }
+        
+        input {
+            width: 250px;
+            height: 20px;
+            padding: 5px;
+        }
+        
+        .list-parent {
+            list-style: none;
+            padding: 20px 30px;
+            background: #cfe7ff;
+            width: 500px;
+            position: relative;
+            margin: 10px;
+        }
+        
+        .del {
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            padding: 5px 10px;
+            background: #ff7171;
+            cursor: pointer;
+            color: white;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <label class="label-txt">Name : </label>
+        <input type="text" id="nameTxt" required>
+        <br>
+        <label class="label-txt">Location : </label>
+        <input type="text" id="locationTxt" required>
+        <button type="submit" id="submitBtn" class="submit-button">Submit</button>
+        <br>
+        <hr>
+        <div class="display-data" id="displayData">
+            <!-- //get req plugs in data here -->
+        </div>
+        <hr>
+    </div>
+
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.2.1.js" integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE=" crossorigin="anonymous"></script>
+    <!-- Custom Scripts -->
+    <script src="https://pastebin.com/embed_js/FiTYT3ew"></script>
+    <script>
+        
+        $(document).ready(function() {
+            
+            var $displayData = $('#displayData');
+            var $submitBtn = $('#submitBtn');
+            var $nameText = $('#nameTxt');
+            var $locationText = $('#locationTxt');
+
+            //calling getReq to populate page with the items
+            getReq();
+            
+            //submit button even listener
+            $submitBtn.on('click', function() {
+
+                //when the submit button is clicked, postReq is called which 
+                //adds the name & location with a POST request
+                postReq();
+
+            }); //end of submitBtn Event Listener
+            
+            //add elements to page
+            function addElement(name, location, id) {
+                
+                //this function is used by both the get and post functions
+                //accepts the properties of the JSON data [name, location and id of the post]
+                //adds the JSON data into the page
+                
+                //placeholder ul with the data
+                var newNode = document.createElement('ul');
+                //adding the class of 'list-parent' to the UL
+                newNode.className = 'list-parent';
+                //html text which will be concatenated to create the inner HTML of the UL
+                var htmlText = '';
+                //stringing up the inner HTML
+                //structure will look like - 
+                /*
+                    <li>
+                        Name : {{Name}}
+                    </li>
+                    <li>
+                        Location : {{Location}}
+                    </li>
+                    <li class='del' data-id='{{id}}'>           ---> adding the ID of the entry to the data attribute so that this can be used to call Delete on the entry
+                        x
+                    </li>
+                */
+                htmlText = '<li>' +
+                    'Name : ' +
+                    name +
+                    '</li>' +
+                    '<li>' +
+                    'Location : ' +
+                    location +
+                    '</li>' + 
+                    '<li class="del" data-id=' +
+                    id +
+                    '>'+
+                    'x'
+                    '</li>';
+
+                //adding the innerHTML to the UL 
+                newNode.innerHTML = htmlText;
+                //adding the new UL to the top of the #displayData div
+                $displayData.prepend(newNode);
+
+            }; //end of addElem
+            
+            //post
+            function postReq() {
+                
+                var name = $nameText.val();
+                var location = $locationText.val();
+
+                //check if txt boxes are not empty
+                if (name.length == 0 || location.length == 0) {
+                    alert('Please complete the form');
+                } else {
+
+                    //call ajax post
+                    $.ajax({
+                        type: 'POST',
+                        url: 'http://rest.learncode.academy/api/johnbob/test',
+                        data: {
+                            "name": name,
+                            "location": location
+                        },
+                        success: function(data) {
+                            //add info to the page calling the addElement()
+                            addElement(data.name, data.location, data.id);
+                            
+                            //clear txt input fields
+                            $nameText.val("");
+                            $locationText.val("");
+                            
+                        },
+                        error: function() {
+                            alert('Failed to add entry');
+                        }
+                    });
+                }
+
+            }; //end of postReq
+            
+            //GET 
+            function getReq(){
+                $.ajax({
+                    tpye: 'GET',
+                    url: 'http://rest.learncode.academy/api/johnbob/test',
+                    success: function(data){
+                        //plugs in the data to the page
+                        //using the addElement(name, location, id)
+                        data.forEach(function(currentValue, index, array){
+                            if (currentValue.name == undefined){
+                                //if obj fields are undefined, they will be ignored
+                                console.log('undefined ignored');
+                            } else {
+                                //if obj fields are present, calling addElement() passing the name, location and ID
+                                //ID will be used in the future to delete the entry 
+                                addElement(currentValue.name, currentValue.location, currentValue.id);
+                            }
+                        })
+                    },
+                    error: function(){
+                        alert('Failed to load data from API');
+                    }
+                })
+            }; //end of gettReq
+            
+            //delete 'x' btn event listener
+            //delegating the on click even to the parent element so that any future
+            //elements created will also inherit this call
+            $($displayData).delegate('.del', 'click', function(){
+                
+                //captring the entry ID which will be used to delete the post
+                var dataID = $(this).attr('data-id');
+                //caching the parent element that will be deleted on click
+                var removedElement = $(this).closest('ul');
+                
+                //AJAX call to delete the entry
+                $.ajax({
+                    type: 'DELETE',
+                    url: 'http://rest.learncode.academy/api/johnbob/test/' + dataID,
+                    success: function(){
+                        //removing the UL element from page
+                        //.remove() as a call back to .fadeOut()
+                        removedElement.fadeOut(300, function(){
+                            $(this).remove();
+                        });
+                    } //end of sucess call back func
+                }); //end of $.AJAX
+            }) //end of delegate event
+            
+        }); //end ready
+
+    </script>
+</body>
+
+</html>
